@@ -1,0 +1,60 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de log
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de entorno
+.env
+.env.*.local
+
+# Directorios de dependencias
+node_modules/
+bower_components/
+
+# Salida de compilación
+dist/
+build/
+out/
+
+# Archivos temporales de editores
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Java
+*.class
+*.war
+*.jar
+
+# PHP
+/vendor/
+
+# Archivos de sistema de control de versiones
+*.lock
+package-lock.json
+yarn.lock
+composer.lock
+
+# Salidas de pruebas y coverage
+coverage/
+*.lcov
+
+# Otros
+*.bak
+*.tmp
+*.cache
