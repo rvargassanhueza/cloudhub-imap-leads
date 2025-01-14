@@ -2,111 +2,45 @@
 
 namespace App;
 
+use Exception;
+
 class LeadsProcessor
 {
-    private $imapHandler;
-    private $mondayHandler;
+    private $mondayApi;
+    private $aiModel;
 
-    /**
-     * Constructor de LeadsProcessor.
-     * 
-     * @param ImapHandler $imapHandler Instancia del manejador IMAP.
-     * @param MondayAPI $mondayHandler Instancia del manejador de la API de Monday.
-     */
-    public function __construct(ImapHandler $imapHandler, MondayAPI $mondayHandler)
+    public function __construct(MondayAPI $mondayApi, AIModel $aiModel)
     {
-        $this->imapHandler = $imapHandler;
-        $this->mondayHandler = $mondayHandler;
+        $this->mondayApi = $mondayApi;
+        $this->aiModel = $aiModel;
     }
 
-    /**
-     * Procesa los leads obtenidos de los correos electrónicos no leídos.
-     * 
-     * Obtiene los correos electrónicos, extrae los datos necesarios y los envía a Monday.
-     */
-    public function processLeads()
+    public function processLead($emailContent)
     {
+        $leadData = $this->extractLeadData($emailContent);
 
-        $emails = $this->imapHandler->getUnreadEmails();
-
-        foreach ($emails as $email) {
-
-            $leadData = $this->extractLeadData($email);
-
-            try {
-               
-                $this->mondayHandler->createLead($leadData);
-                $this->logProcessedLead($leadData);
-            } catch (\Exception $e) {
-                $this->logError($e->getMessage());
-            }
-
-            unset($leadData);
+        if (!$leadData) {
+            throw new Exception("No se pudieron extraer los datos del lead del contenido del email.");
         }
 
-        unset($emails);
+        return $this->mondayApi->createLead($leadData);
     }
 
-    /**
-     * Extrae los datos del lead desde el cuerpo del correo electrónico.
-     * 
-     * @param array $email Array que representa un correo electrónico.
-     * @return array Datos extraídos del correo.
-     */
-    private function extractLeadData($email)
+    private function extractLeadData($emailContent)
     {
-        $body = $email['body'];
+        $extractedData = $this->aiModel->analyzeEmailContent($emailContent);
 
-        $proyecto = $this->extractField($body, 'Proyecto:');
-        $modelo = $this->extractField($body, 'Modelo a Cotizar:');
-        $nombre = $this->extractField($body, 'Nombre:');
-        $rut = $this->extractField($body, 'RUT:');
-        $email = $this->extractField($body, 'Email:');
-        $telefono = $this->extractField($body, 'Teléfono:');
+        if (!$extractedData || !is_array($extractedData)) {
+            return null;
+        }
 
         return [
-            'proyecto' => $proyecto,
-            'modelo' => $modelo,
-            'nombre' => $nombre,
-            'rut' => $rut,
-            'email' => $email,
-            'telefono' => $telefono,
+            'nombre' => $extractedData['nombre'] ?? 'Sin nombre',
+            'proyecto' => $extractedData['proyecto'] ?? '',
+            'modelo' => $extractedData['tipo_depto'] ?? '',
+            'forma_contacto' => $extractedData['forma_contacto'] ?? '',
+            'email' => $extractedData['email'] ?? '',
+            'telefono' => $extractedData['telefono'] ?? '',
         ];
-    }
-
-    /**
-     * Extrae un campo específico del texto del cuerpo del correo.
-     * 
-     * @param string $text Texto del cuerpo del correo.
-     * @param string $fieldName Nombre del campo a buscar.
-     * @return string Valor extraído del campo, o 'N/A' si no se encuentra.
-     */
-    private function extractField($text, $fieldName)
-    {
-        $pattern = '/' . preg_quote($fieldName, '/') . '\s*(.+)/';
-        if (preg_match($pattern, $text, $matches)) {
-            return trim($matches[1]);
-        }
-        return 'N/A';
-    }
-
-    /**
-     * Registra los datos de un lead procesado en un archivo de log.
-     * 
-     * @param array $lead Datos del lead procesado.
-     */
-    private function logProcessedLead($lead)
-    {
-        file_put_contents(__DIR__ . '/../logs/processed.log', json_encode($lead) . PHP_EOL, FILE_APPEND);
-    }
-
-    /**
-     * Registra un mensaje de error en un archivo de log.
-     * 
-     * @param string $message Mensaje de error.
-     */
-    private function logError($message)
-    {
-        file_put_contents(__DIR__ . '/../logs/errors.log', $message . PHP_EOL, FILE_APPEND);
     }
 }

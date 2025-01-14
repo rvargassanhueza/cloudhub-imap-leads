@@ -36,10 +36,10 @@ class ImapHandler
      * @param string $username Nombre de usuario para la autenticación
      * @param string $password Contraseña para la autenticación
      */
-    public function __construct($host, $port, $username, $password)
+    public function __construct($host, $username, $password)
     {
         $this->host = $host;
-        $this->port = $port;
+        $this->port = 993;
         $this->username = $username;
         $this->password = $password;
     }
@@ -51,19 +51,27 @@ class ImapHandler
      */
     public function connect()
     {
-        
-        $this->imapStream = imap_open(
-            "{" . $this->host . ":" . $this->port . "/ssl}INBOX",
-            $this->username,
-            $this->password
-        );
+        $connectionString = "{" . $this->host . ":" . $this->port . "/imap/ssl/novalidate-cert}INBOX";
 
-        if (!$this->imapStream) {
-            $errorMessage = imap_last_error();
-            throw new \Exception("Falló la conexión IMAP: " . $errorMessage);
+        try {
+            $this->imapStream = imap_open(
+                $connectionString,
+                $this->username,
+                $this->password
+            );
+
+            if (!$this->imapStream) {
+                $errorMessage = imap_last_error();
+                throw new \Exception("Falló la conexión IMAP: " . $errorMessage);
+            }
+
+            echo "IMAP conexión establecida" . PHP_EOL;
+        } catch (\Exception $e) {
+            echo "Error de conexión IMAP: " . $e->getMessage() . PHP_EOL;
+            print_r(imap_errors());
+            print_r(imap_alerts());
+            die();
         }
-
-        echo "IMAP conexión establecida" . PHP_EOL;
     }
 
     /**
@@ -74,7 +82,6 @@ class ImapHandler
      */
     public function getUnreadEmails()
     {
-
         if (!$this->imapStream) {
             throw new \Exception("No hay conexión IMAP establecida.");
         }

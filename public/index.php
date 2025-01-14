@@ -1,55 +1,47 @@
 <?php
 
 ini_set('memory_limit', '256M');
-
-
 require_once '../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 use App\ImapHandler;
 use App\MondayAPI;
 use App\LeadsProcessor;
-
+use App\AIModel;
 
 $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
-/**
- * Configuración de conexión IMAP
- * @var array $imapConfig
- */
 $imapConfig = [
     'host' => $_ENV['IMAP_HOST'],
-    'port' => $_ENV['IMAP_PORT'], 
+    'port' => $_ENV['IMAP_PORT'],
     'username' => $_ENV['IMAP_USER'],
-    'password' => $_ENV['IMAP_PASSWORD']
+    'password' => $_ENV['IMAP_PASSWORD'],
 ];
 
-/**
- * Token de la API de Monday
- * @var string $apiToken
- */
-$apiToken = $_ENV['MONDAY_API_TOKEN'];
-
+$apiTokenMonday = $_ENV['MONDAY_API_TOKEN'];
+$openAIToken = $_ENV['OPENAI_API_KEY'];
 
 $imapHandler = new ImapHandler(
     $imapConfig['host'], 
-    $imapConfig['port'], 
     $imapConfig['username'], 
     $imapConfig['password']
 );
 
+$mondayHandler = new MondayAPI($apiTokenMonday);
+$aiProcessor = new AIModel($openAIToken);
 
-$imapHandler->connect();
+$leadsProcessor = new LeadsProcessor($mondayHandler, $aiProcessor);
 
-/**
- * Crear una instancia de MondayAPI
- * @var MondayAPI $mondayHandler
- */
-$mondayHandler = new MondayAPI($apiToken);
+try {
+    $imapHandler->connect();
+    $emails = $imapHandler->getUnreadEmails();
 
-$leadsProcessor = new LeadsProcessor($imapHandler, $mondayHandler);
+    foreach ($emails as $email) {
+        $leadsProcessor->processLead($email['body']);
+    }
 
-$leadsProcessor->processLeads();
-
-echo "Leads procesados con éxito!";
+    echo "Leads procesados con éxito!";
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
+}
