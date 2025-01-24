@@ -42,6 +42,7 @@ class MondayAPI
         }
 GRAPHQL;
 
+
         $leadData['email'] = $leadData['email'] ?? 'no-reply@example.com';
         if (!filter_var($leadData['email'], FILTER_VALIDATE_EMAIL)) {
             $leadData['email'] = 'no-reply@example.com';
@@ -54,7 +55,7 @@ GRAPHQL;
             'text' => $leadData['forma_contacto'] ?? 'N/A',
             'lead_email' => [
                 'email' => $leadData['email'],
-                'text' => $leadData['nombre'] ?? 'Sin nombre',
+                'text' => $leadData['email'] ?? 'Sin nombre',
             ],
             'lead_phone' => $leadData['telefono'] ?? 'N/A',
             'lead_status' => 'Lead nuevo',
@@ -65,6 +66,11 @@ GRAPHQL;
             'itemName' => $leadData['nombre'],
             'columnValues' => json_encode($columnValues),
         ];
+
+    logMessage('INFO', 'Enviando datos a Monday: ' . json_encode($columnValues, JSON_PRETTY_PRINT));
+
+    logMessage('INFO', 'Enviando datos a Monday con Variables: ' . json_encode($variables, JSON_PRETTY_PRINT));
+
 
         try {
             // Enviar la consulta GraphQL y procesar la respuesta.

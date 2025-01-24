@@ -6,16 +6,8 @@ use Exception;
 
 class AIModel
 {
-    /**
-     * @var string $apiKey Clave de la API para autenticar solicitudes a OpenAI.
-     */
     private $apiKey;
 
-    /**
-     * Constructor de la clase AIModel.
-     * 
-     * @param string $apiKey Clave de la API de OpenAI.
-     */
     public function __construct($apiKey)
     {
         $this->apiKey = $apiKey;
@@ -31,9 +23,7 @@ class AIModel
     public function analyzeEmailContent($emailContent)
     {
         try {
-
             $ch = curl_init('https://api.openai.com/v1/chat/completions');
-
             $payload = json_encode([
                 'model' => 'gpt-4',
                 'messages' => [
@@ -46,7 +36,7 @@ class AIModel
                         'content' => $this->generatePrompt($emailContent),
                     ],
                 ],
-                'max_tokens' => 200,
+                'max_tokens' => 50,  // Ajuste de max_tokens
             ]);
 
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -66,13 +56,26 @@ class AIModel
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
-            
             if ($httpCode !== 200) {
                 throw new Exception('Error en la API de OpenAI: ' . $response);
             }
 
+            // Verificar si la respuesta contiene el formato esperado
             $data = json_decode($response, true);
+            if (!isset($data['choices'][0]['message']['content'])) {
+                throw new Exception('Respuesta inesperada de la API de OpenAI.');
+            }
+
             $parsedData = json_decode($data['choices'][0]['message']['content'], true);
+
+            // Verificar que los datos están en el formato correcto
+            $requiredFields = ['Nombre', 'Proyecto', 'Tipo_departamento', 'Forma_contacto', 'Email', 'Telefono'];
+            foreach ($requiredFields as $field) {
+                if (!isset($parsedData[$field])) {
+                    $parsedData[$field] = null;
+                }
+            }
+
             return $parsedData;
         } catch (Exception $e) {
             throw new Exception("Error al analizar el contenido del email con OpenAI: " . $e->getMessage());

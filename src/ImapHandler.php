@@ -103,7 +103,6 @@ class ImapHandler
                 'body' => $body,
             ];
 
-            imap_delete($this->imapStream, $emailId);
         }
 
         imap_expunge($this->imapStream);
